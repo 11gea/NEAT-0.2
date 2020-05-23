@@ -1,16 +1,18 @@
 canvas = document.getElementById('canvas')
 ctx = canvas.getContext("2d")
 
-const numInNodes = 2, numOutNodes = 1, times = [], groups = [],
+const numInNodes = 2, numOutNodes = 1, times = [], groups = [], agentList = [],
   genes = [/*idk yet*/],
   random = (max, min) => Math.random() * (max - min) + min,
   abs = (a) => Math.abs(a)
 
-var screenx = 0, screeny = 0, agentList = [], hafx = 0, hafy = 0
+var screenx = 0, screeny = 0, hafx = 0, hafy = 0
+
+// grouping system needs remodeling, use dictionary?
 
 let i = 10
 while (i--) {
-  groups[0].push(agentList.length)
+  addGroup(0, agentList.length)
   agentList.push(createAgent())
 }
 
@@ -18,7 +20,7 @@ function addGroup(groupIndex, item) {
   if (groups[groupIndex] == null) {
     groups.push([item])
   } else {
-    groups[]
+    groups[groupIndex].push(item)
   }
 }
 
@@ -33,6 +35,7 @@ function mainloop() {
 mainloop()
 
 function train() {
+  // train each "species" seperately
   let i = groups.length
   while (i--) {
     let currentGroup = groups[i]
@@ -43,7 +46,8 @@ function train() {
       agentList[currentGroup[j]][0] = score
       text(-100, (j - len) * 20, `${j} : ${score}`, 20, "black")
     }
-    // agentList = mergeSort(agentList)
+    groups[i] = mergeSort(currentGroup)
+    // mutate()
   }
 }
 
@@ -144,7 +148,7 @@ function merge(left, right) {
   let result = [], i = 0, j = 0
   while (i < left.length && j < right.length) {
     // compare agent scores
-    if (left[i][0] < right[j][0]) {
+    if (agentList[left[i]][0] < agentList[right[j]][0]) {
       result.push(left[i++])
     } else {
       result.push(right[j++])
