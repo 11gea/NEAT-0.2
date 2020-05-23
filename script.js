@@ -2,8 +2,9 @@ canvas = document.getElementById('canvas')
 ctx = canvas.getContext("2d")
 
 const numInNodes = 2, numOutNodes = 1, times = [], species = {},
-  random = (max, min) => Math.random() * (max - min) + min,
-  abs = (a) => Math.abs(a)
+  random = (min, max) => Math.random() * (max - min) + min,
+  abs = (a) => Math.abs(a),
+  ceil = (a) => Math.ceil(a)
 
 var screenx = 0, screeny = 0, hafx = 0, hafy = 0
 
@@ -45,30 +46,101 @@ mainloop()
 
 function train() {
   // train each species seperately
-  let x = -hafx / 2 - 100
+  let x = -hafx
   for (agents in species) {
     let currentAgents = species[agents]
     let i = currentAgents.length
     while (i--) {
       let input = [1, 1]
       let goal = 0
-      score = abs(goal - runAgent(input, currentAgents[i]))
+      let score = abs(goal - runAgent(input, currentAgents[i]))
       currentAgents[i][0] = score
-      text(x, (i - currentAgents.length / 2) * 20, score, 20, "black")
+      text(x, (i - currentAgents.length / 2) * 20, ~~(score * 1000) / 1000, 20, "black")
     }
-    species[agents] = mergeSort(currentAgents)
-    x += hafx
+    species[agents] = evolveSpecies(mergeSort(currentAgents), currentAgents.length)
+    x += 60
   }
 }
 
-function mutate(list, length) {
-  //
+function evolveSpecies(list, length) {
+  list.splice(ceil(list.length / 4))
+  let i = length - list.length
+  if (i > 0) {
+    while (i--) {
+      let random1 = list[~~(random(0,1) * random(0,1) * list.length)]
+      let random2 = list[~~(random(0,1) * random(0,1) * list.length)]
+      list.push(mutate(random1, random2))
+    }
+  }
+  return list
+}
+
+function mutate(agent1, agent2) {
+  // initilize new agent
+  let newAgent = [0, []]
+  newAgent.push(agent1[2])
+  newAgent.push(agent1[3])
+  // the only thing we are changing is the weigths and bais so there is no need to change anything else
+  // agentTemplate is the "gene" of the agent, everything should match with agent2 other then the values in it
+  agentTemplate = agent1[1]
+  // for every node in the gene
+  let i = agentTemplate.length
+  while (i--) {
+    // make sure it is not input nodes
+    if (agentTemplate[i] != null) {
+      // copy over the connections cuz should be the same
+      newAgent[1][i] = [agentTemplate[i][0], []]
+      // for every weight in the node
+      let j = agentTemplate[i][1].length
+      while (j--) {
+        // pick the values contained in either agent 1 or 2
+        let weight
+        if (~~random(0, 2) === 1) {
+          weight = agentTemplate[i][1][j]
+        } else {
+          weight = agent2[1][i][1][j]
+        }
+        // mutate
+        weight += random(-1, 1)
+        if (random(0, 1) < 0.0001) {
+          weight *= random(-100, 0)
+        }
+        // insert the crossover and mutated weight
+        newAgent[1][i][1].push(weight)
+      }
+      // copy over function cuz should be same
+      newAgent[1][i].push(agentTemplate[i][2])
+      // crossover inner bais
+      let bais
+      if (~~random(0, 2) === 1) {
+        bais = agentTemplate[i][3]
+      } else {
+        bais = agent2[1][i][3]
+      }
+      bais += random(-1, 1)
+      if (random(0, 1) < 0.0001) {
+        bais *= random(-100, 0)
+      }
+      newAgent[1][i].push(bais)
+      // crossover outer bais
+      if (~~random(0, 2) === 1) {
+        bais = agentTemplate[i][4]
+      } else {
+        bais = agent2[1][i][4]
+      }
+      bais += random(-1, 1)
+      if (random(0, 1) < 0.0001) {
+        bais *= random(-100, 0)
+      }
+      newAgent[1][i].push(bais)
+    }
+  }
+  return newAgent
 }
 
 function createAgent() {
-  let nodes = [], backLinks = [], weights, probWeights = [], allNodes = [],
-    // create list of previous nodes
-    i = numInNodes
+  let nodes = [], backLinks = [], weights, probWeights = [], allNodes = [], i = numInNodes
+  // create list of previous nodes
   while (i--) {
     backLinks.push(i)
   }
@@ -79,10 +151,10 @@ function createAgent() {
     weights = []
     let j = numInNodes
     while (j--) {
-      weights.push(random(5, -5))
+      weights.push(random(-5, 5))
     }
     // add the previous links, weights, function #0-1, inner bais, outer bais
-    nodes[i + numInNodes] = [backLinks, weights, ~~random(0, 2), random(5, -5), random(5, -5)]
+    nodes[i + numInNodes] = [backLinks, weights, ~~random(0, 2), random(-5, 5), random(-5, 5)]
   }
   // make probability list for weight mutation
   i = numInNodes
